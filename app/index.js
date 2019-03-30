@@ -5,9 +5,13 @@ import { remote, ipcRenderer } from 'electron'
 import React from 'react'
 import ReactDom from 'react-dom'
 import { Provider } from 'react-redux'
-import { createStore, applyMiddleware } from 'redux'
+import { createStore, applyMiddleware, compose } from 'redux'
 import thunk from 'redux-thunk'
 import electronLocalStorage from 'electron-json-storage-sync'
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage';
+import { PersistGate } from 'redux-persist/integration/react'
+import { composeWithDevTools } from 'redux-devtools-extension'
 
 import './utilities/vendor/bootstrap/css/bootstrap.css'
 import AppContainer from './containers/appContainer'
@@ -687,24 +691,35 @@ ipcRenderer.on('update-available', payload => {
 })
 /** End: Response to  main process events **/
 
-// Start
+// Start: Store
+const persistConfig = {
+  key: 'root',
+  storage,
+}
+const persistedReducer = persistReducer(persistConfig, RootReducer)
+const composeEnhancers = composeWithDevTools(applyMiddleware(thunk));
+// const enhancers = composeEnhancers(applyMiddleware(thunk))
 const reduxStore = createStore(
-  RootReducer,
-  applyMiddleware(thunk)
+  persistedReducer,
+  window.__state__,
+  composeEnhancers,
 )
+let persistor = persistStore(reduxStore)
 
 ReactDom.render(
   <Provider store = { reduxStore }>
-    <AppContainer
-      searchIndex = { SearchIndex }
-      localPref = { localPref }
-      updateLocalStorage = { updateLocalStorage }
-      loggedInUserInfo = { getCachedUserInfo() }
-      launchAuthWindow = { launchAuthWindow }
-      reSyncUserGists = { reSyncUserGists }
-      updateAboutModalStatus = { updateAboutModalStatus }
-      updateDashboardModalStatus = { updateDashboardModalStatus }
-      updateActiveGistAfterClicked = { updateActiveGistAfterClicked } />
+    <PersistGate loading={null} persistor={persistor}>
+      <AppContainer
+        searchIndex = { SearchIndex }
+        localPref = { localPref }
+        updateLocalStorage = { updateLocalStorage }
+        loggedInUserInfo = { getCachedUserInfo() }
+        launchAuthWindow = { launchAuthWindow }
+        reSyncUserGists = { reSyncUserGists }
+        updateAboutModalStatus = { updateAboutModalStatus }
+        updateDashboardModalStatus = { updateDashboardModalStatus }
+        updateActiveGistAfterClicked = { updateActiveGistAfterClicked } />
+    </PersistGate>
   </Provider>,
   document.getElementById('container')
 )

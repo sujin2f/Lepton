@@ -20,6 +20,8 @@ const isDev = require('electron-is-dev')
 const defaultConfig = require('./configs/defaultConfig')
 const appInfo = require('./package.json')
 
+const { default: installExtension, REDUX_DEVTOOLS } = require('electron-devtools-installer')
+
 const autoUpdater = require('electron-updater').autoUpdater
 autoUpdater.logger = logger
 autoUpdater.autoDownload = true
@@ -32,7 +34,7 @@ logger.info(`\n\n----- ${appInfo.name} v${appInfo.version} ${os.platform()}-----
 logger.info(`[conf] Looking for .leptonrc at ${ app.getPath('home') + '/.leptonrc' }`)
 logger.info('[conf] The resolved configuration is ...')
 for (const key of Object.getOwnPropertyNames(defaultConfig)) {
-  logger.info(`"${key}": ${JSON.stringify(nconf.get(key))}`)    
+  logger.info(`"${key}": ${JSON.stringify(nconf.get(key))}`)
 }
 
 let mainWindow = null
@@ -46,6 +48,7 @@ const keyAboutPage = 'CommandOrControl+,'
 const keyDashboard = 'CommandOrControl+D'
 const keyEditorExit = 'CommandOrControl+Escape'
 const keySyncGists = 'CommandOrControl+R'
+const keyReload = 'CommandOrControl+T';
 
 function createWindowAndAutoLogin () {
   createWindow(true)
@@ -81,7 +84,7 @@ function createWindow (autoLogin) {
     logger.debug('-----> registering login-page-ready listener')
     // Set up a one-time listener for 'login-page-ready'
     ipcMain.on('login-page-ready', () => {
-      logger.info('[signal] sending auto-login signal')        
+      logger.info('[signal] sending auto-login signal')
       mainWindow.webContents.send('auto-login')
       ipcMain.removeAllListeners('login-page-ready')
     })
@@ -144,6 +147,14 @@ app.on('ready', () => {
     // createWindow()
     autoUpdater.checkForUpdatesAndNotify()
     createWindowAndAutoLogin()
+    if ('start' === process.env.npm_lifecycle_event) {
+      installExtension(REDUX_DEVTOOLS).then((name) => {
+        logger.info(`Added Extension:  ${name}`);
+      })
+      .catch((err) => {
+        logger.info('An error occurred: ', err)
+      });
+    }
 })
 
 app.on('window-all-closed', () => {
@@ -153,12 +164,12 @@ app.on('window-all-closed', () => {
 })
 
 
-/* 'before-quit' is emitted when Electron receives 
+/* 'before-quit' is emitted when Electron receives
  * the signal to exit and wants to start closing windows */
 app.on('before-quit', () => {
   willQuitApp = true
   try {
-    // If we launch the app and close it quickly, we might run into a 
+    // If we launch the app and close it quickly, we might run into a
     // situation where electronLocalshortcut is not initialized.
     if (mainWindow && electronLocalshortcut) {
       electronLocalshortcut.unregisterAll(mainWindow)
@@ -223,11 +234,16 @@ function setUpApplicationMenu () {
         accelerator: keyAboutPage,
         click: (item, mainWindow) => mainWindow && mainWindow.send('about-page')
       },
-      {    
+      {
         label: 'Search',
         accelerator: keyShortcutForSearch,
         click: (item, mainWindow) => mainWindow && mainWindow.send('search-gist')
-      }
+      },
+      {
+        label: 'Reload',
+        accelerator: keyReload,
+        click: (item, mainWindow) => mainWindow && mainWindow.reload(),
+      },
     ]
   }
   let template = [...mainMenuTemplate, gistMenu]
@@ -245,7 +261,7 @@ function initGlobalConfigs () {
     logger.error('[.leptonrc] Please correct the mistakes in your configuration file: [%s].\n' + error, configFilePath)
   }
 
-  nconf.defaults(defaultConfig)  
+  nconf.defaults(defaultConfig)
   global.conf = nconf
 }
 
