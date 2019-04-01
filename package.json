@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint app",
     "license": "license-checker --production --relativeLicensePath --json > license.json",
-    "watch": "webpack --watch",
+    "watch": "NODE_ENV=development webpack --watch",
     "start": "electron ./main.js",
     "build": "npm run pack",
     "packDev": "webpack --display-modules --mode development",
@@ -56,6 +56,7 @@
     "text-loader": "0.0.1",
     "url-loader": "^1.1.2",
     "webpack": "^4.29.6",
+    "webpack-dev-server": "^3.2.1",
     "webpack-node-externals": "^1.7.2"
   },
   "dependencies": {

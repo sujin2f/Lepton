@@ -77,13 +77,16 @@ class UserPanel extends Component {
       }
     })
 
+    console.log('processedFiles', processedFiles, description);
+
     return getGitHubApi(CREATE_SINGLE_GIST)(this.props.accessToken, description, processedFiles, isPublic)
       .catch((err) => {
         Notifier('Gist creation failed')
         logger.error(JSON.stringify(err))
       })
       .then((response) => {
-        this.updateGistsStoreWithNewGist(response)
+        console.log('response', response);
+        this.updateGistsStoreWithNewGist(response) //
       })
       .finally(() => {
         this.closeGistEditorModal()

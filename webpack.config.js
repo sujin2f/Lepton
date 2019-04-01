@@ -3,8 +3,12 @@
 const path = require('path')
 const webpack = require('webpack')
 const nodeExternals = require('webpack-node-externals')
+const production = 'build' === process.env.npm_lifecycle_event
 
 module.exports = {
+  mode: production ? 'production' : 'development',
+  devtool: production ? false : 'inline-source-map',
+  cache: production ? true : false,
   entry: [
     './app/index.js'
   ],
